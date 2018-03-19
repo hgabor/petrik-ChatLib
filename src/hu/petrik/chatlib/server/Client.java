@@ -19,7 +19,15 @@ class Client {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println("Client: " + line);
+                switch (line) {
+                    case "/q":
+                        socket.close();
+                        return;
+                        
+                    default:
+                        System.out.println("Client: " + line);
+                        break;
+                }
             }
         }
     }

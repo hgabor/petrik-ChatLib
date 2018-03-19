@@ -36,9 +36,10 @@ public class ChatServer {
                         client.start();
                     }
                     catch (IOException ex) {
-                        System.out.println("Client disconnected");
+                        System.out.println("Client error");
                     }
                     finally {
+                        System.out.println("Client disconnected");
                         clients.remove(client);
                     }
                 }
