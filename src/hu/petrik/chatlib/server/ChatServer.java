@@ -49,6 +49,12 @@ public class ChatServer {
         }
     }
     
+    void send(String message) throws IOException {
+        for (Client client: clients) {
+            client.send(message);
+        }
+    }
+    
     public void stop() throws IOException {
         socket.close();
         for (Client c: clients) {
@@ -76,5 +82,4 @@ public class ChatServer {
         server.stop();
         Thread.sleep(5000);
     }
-    
 }

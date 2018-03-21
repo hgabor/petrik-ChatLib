@@ -7,6 +7,8 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 
@@ -14,6 +16,8 @@ public class ChatClient {
     private String ip;
     private int port;
     private Socket socket;
+    private OutputStreamWriter writer;
+    private BufferedReader reader;
 
     public ChatClient(String ip, int port) {
         this.ip = ip;
@@ -22,22 +26,73 @@ public class ChatClient {
     
     public void connect() throws IOException {
         socket = new Socket(InetAddress.getByName(ip), port);
+        OutputStream stream = socket.getOutputStream();
+        writer = new OutputStreamWriter(stream);
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        startListening();
     }
     
-    private void writeToConsole() throws IOException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+    public void sendMessage(String message) throws IOException {
+        writer.write(message + "\n");
+        writer.flush();
+
+        if ("/q".equals(message)) {
+            socket.close();
+            return;
+        }
+    }
+    
+    public void close() throws IOException {
+        sendMessage("/q");
+    }
+    
+    private void startListening() throws IOException {
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        for (MessageReceivedListener listener: receivedListeners) {
+                            listener.messageReceived(line);
+                        }
+                    }
+                }
+                catch (IOException ex) {
+                    for (MessageReceivedListener listener: receivedListeners) {
+                        listener.error(ex);
+                    }
+                }
             }
+        });
+        thread.start();
+    }
+    
+    public interface MessageReceivedListener {
+        public void messageReceived(String message);
+        public void error(IOException ex);
+    }
+    private List<MessageReceivedListener> receivedListeners = new ArrayList<>();
+    
+    public void addMessageReceivedListener(MessageReceivedListener listener) {
+        receivedListeners.add(listener);
+    }
+    public void removeMessageReceivedListener(MessageReceivedListener listener) {
+        receivedListeners.remove(listener);
+    }
+    
+    
+    
+    private void writeToConsole() throws IOException {
+        String line;
+        while ((line = reader.readLine()) != null) {
+            System.out.println(line);
         }
     }
     
     private void readFromConsole() throws IOException {
         Scanner sc = new Scanner(System.in);
         String line;
-        OutputStream stream = socket.getOutputStream();
-        OutputStreamWriter writer = new OutputStreamWriter(stream);
         while ((line = sc.nextLine()) != null) {
             writer.write(line + "\n");
             writer.flush();
