@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
+import java.util.Random;
 
 /**
  * A chat szerveren belül egy kliens kapcsolatot kezel.
@@ -15,6 +16,9 @@ class Client {
     private Object syncRoot = new Object();
     private OutputStreamWriter writer;
     
+    private String nickname;
+    private static Random random = new Random();
+    
     /**
      * Létrehoz egy kliens objektumot a megadott socket-hez.
      * 
@@ -24,6 +28,7 @@ class Client {
     public Client(Socket socket, ChatServer server) {
         this.socket = socket;
         this.server = server;
+        this.nickname = "User #" + random.nextLong();
     }
     
     /**
@@ -38,13 +43,34 @@ class Client {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                switch (line) {
+                String[] darabolt = line.split(" ", 2);
+                
+                if (darabolt.length == 0) {
+                    continue;
+                }
+                
+                String parancs = darabolt[0];
+                String parameter = "";
+                if (darabolt.length != 1) {
+                    parameter = darabolt[1];
+                }
+                
+                switch (parancs) {
                     case "/q":
                         socket.close();
                         return;
                         
+                    case "/nick":
+                        String ujNicknev = parameter.trim();
+                        if (!ujNicknev.equals("")) {
+                            server.send("* " + nickname + " új nickneve " + ujNicknev + "\n");
+                            nickname = ujNicknev;
+                        }
+                        
+                        break;
+                        
                     default:
-                        server.send(line + "\n");
+                        server.send(nickname + ": " + line + "\n");
                         break;
                 }
             }
