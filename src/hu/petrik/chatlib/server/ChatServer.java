@@ -13,7 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * és kezelni.
  * A szerver folyamatosan logol a konzolra, egy grafikus alkalmazás esetén ezt figyelmen kívül lehet hagyni.
  */
-public class ChatServer {
+public class ChatServer extends AbstractServer {
     private final String address;
     private final int port;
     // Sima ArrayList helyett ezt a szálbiztos alternatívát használjuk.
@@ -84,6 +84,7 @@ public class ChatServer {
      * @param message Az üzenet
      * @throws IOException 
      */
+    @Override
     void send(String message) throws IOException {
         for (Client client: clients) {
             client.send(message);
@@ -130,5 +131,9 @@ public class ChatServer {
         sc.nextLine();
         server.stop();
         Thread.sleep(5000);
+    }
+
+    public int getClientCount() {
+        return clients.size();
     }
 }

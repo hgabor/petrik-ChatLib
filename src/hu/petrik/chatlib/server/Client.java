@@ -2,7 +2,9 @@ package hu.petrik.chatlib.server;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.Socket;
 
@@ -11,9 +13,10 @@ import java.net.Socket;
  */
 class Client {
     private Socket socket;
-    private ChatServer server;
+    private AbstractServer server;
     private Object syncRoot = new Object();
     private OutputStreamWriter writer;
+    private BufferedReader reader;
     
     /**
      * Létrehoz egy kliens objektumot a megadott socket-hez.
@@ -21,8 +24,16 @@ class Client {
      * @param socket A kapcsolat a klienshez.
      * @param server A szerver objektum, amely létrehozta a klienst.
      */
-    public Client(Socket socket, ChatServer server) {
+    public Client(Socket socket, AbstractServer server) throws IOException {
         this.socket = socket;
+        this.server = server;
+        writer = new OutputStreamWriter(socket.getOutputStream());
+        reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    }
+    
+    public Client(OutputStream os, InputStream is, AbstractServer server) {
+        writer = new OutputStreamWriter(os);
+        reader = new BufferedReader(new InputStreamReader(is));
         this.server = server;
     }
     
@@ -34,19 +45,16 @@ class Client {
      * @throws IOException 
      */
     public void start() throws IOException {
-        writer = new OutputStreamWriter(socket.getOutputStream());
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                switch (line) {
-                    case "/q":
-                        socket.close();
-                        return;
-                        
-                    default:
-                        server.send(line + "\n");
-                        break;
-                }
+        String line;
+        while ((line = reader.readLine()) != null) {
+            switch (line) {
+                case "/q":
+                    if (socket != null) socket.close();
+                    return;
+
+                default:
+                    server.send(line + "\n");
+                    break;
             }
         }
     }
@@ -72,6 +80,6 @@ class Client {
      * @throws IOException 
      */
     public void stop() throws IOException {
-        socket.close();
+        if (socket != null) socket.close();
     }
 }
